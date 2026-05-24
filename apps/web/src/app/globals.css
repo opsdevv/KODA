@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cider-bg: #f8f8fa;
+  --cider-surface: #f0f0f4;
+  --cider-panel: #e8e8ed;
+  --cider-border: #d0d0da;
+  --cider-accent: #7c6cff;
+}
+
+.dark {
+  --cider-bg: #0d0d0f;
+  --cider-surface: #141418;
+  --cider-panel: #1a1a1f;
+  --cider-border: #2a2a32;
+  --cider-accent: #7c6cff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--cider-bg);
+  overflow: hidden;
+}
+
+.dark body {
+  color: #e8e8ed;
+}
+
+body {
+  color: #1a1a1f;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #2a2a32;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0ca;
+}
+
+.dark .glass {
+  background: rgba(26, 26, 31, 0.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.streaming-cursor::after {
+  content: "\u258B";
+  animation: blink 1s step-end infinite;
+  color: var(--cider-accent);
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.chat-markdown > *:first-child {
+  margin-top: 0;
+}
+
+.chat-markdown > *:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown pre code {
+  background: transparent;
+  padding: 0;
+}

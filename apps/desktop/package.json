@@ -1,0 +1,13 @@
+{
+  "name": "@cider/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "echo Build web first with pnpm build"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1"
+  }
+}

@@ -1,0 +1,31 @@
+---
+description: TypeScript is the default language for all new code and builds
+alwaysApply: true
+---
+
+# TypeScript by Default
+
+Use **TypeScript** for all new code, packages, scripts, and build tooling unless the user explicitly asks for another language.
+
+## Defaults
+
+- New files: `.ts` / `.tsx` (not `.js` / `.jsx`)
+- New packages and apps: TypeScript with `tsconfig.json`
+- Config files: prefer `*.config.ts` over plain JS when the toolchain supports it
+- Dependencies: use `@types/*` or packages with built-in types
+
+## When to Deviate
+
+Only use another language (Python, Go, Rust, plain JavaScript, etc.) when the user **explicitly** requests it or the existing subsystem is already in that language.
+
+If unclear, default to TypeScript and ask before introducing a different language.
+
+## Examples
+
+```typescript
+// ✅ Default — new server route
+export async function getProject(id: string): Promise<Project> { ... }
+
+// ❌ Avoid — plain JS unless user asked for it
+export async function getProject(id) { ... }
+```
