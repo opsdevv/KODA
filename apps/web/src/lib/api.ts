@@ -1,4 +1,11 @@
-import type { ProjectInfo, FileNode, FileReadResult, GitStatus } from "@cider/shared";
+import type {
+  ProjectInfo,
+  FileNode,
+  FileReadResult,
+  GitStatus,
+  ProjectPreviewStartResult,
+  ProjectPreviewStatus,
+} from "@cider/shared";
 import { getApiBase } from "./api-base";
 
 const API = "/api";
@@ -270,6 +277,32 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ command }),
     }),
+
+  getProjectPreview: (id: string) =>
+    request<ProjectPreviewStatus>(`/projects/${id}/preview`),
+
+  startProjectPreview: (
+    id: string,
+    options?: { openBrowser?: boolean; publicHost?: string }
+  ) =>
+    request<ProjectPreviewStartResult>(`/projects/${id}/preview`, {
+      method: "POST",
+      body: JSON.stringify(options ?? {}),
+    }),
+
+  stopProjectPreview: async (id: string) => {
+    const res = await fetch(`${API}/projects/${id}/preview`, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) {
+      let err = res.statusText;
+      try {
+        const body = (await res.json()) as { error?: string };
+        err = body.error ?? err;
+      } catch {
+        err = (await res.text()) || err;
+      }
+      throw new Error(err);
+    }
+  },
 
   setApiKey: (apiKey: string) =>
     request<{ ok: boolean }>("/settings/api-key", {

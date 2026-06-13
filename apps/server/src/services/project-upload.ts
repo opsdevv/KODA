@@ -93,6 +93,84 @@ export async function resolveProjectRoot(extractedDir: string): Promise<string> 
   return extractedDir;
 }
 
+const ROOT_SKIP = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  ".next",
+  "coverage",
+  ".turbo",
+  "out",
+]);
+
+/** Prefer a directory that contains package.json (with dev/start) or index.html. */
+export async function findBestProjectRoot(extractedDir: string): Promise<string> {
+  let root = await resolveProjectRoot(extractedDir);
+  if (await hasProjectMarker(root)) return root;
+
+  const candidates: string[] = [];
+
+  async function walk(dir: string, depth: number): Promise<void> {
+    if (depth > 5) return;
+    if (await hasDevPackage(dir)) candidates.push(dir);
+
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const ent of entries) {
+      if (!ent.isDirectory()) continue;
+      if (ROOT_SKIP.has(ent.name) || ent.name.startsWith(".")) continue;
+      await walk(path.join(dir, ent.name), depth + 1);
+    }
+  }
+
+  await walk(root, 0);
+  if (candidates.length === 0) return root;
+
+  candidates.sort((a, b) => {
+    const depthA = a.split(path.sep).length;
+    const depthB = b.split(path.sep).length;
+    if (depthA !== depthB) return depthA - depthB;
+    const aApps = a.includes(`${path.sep}apps${path.sep}`) ? 0 : 1;
+    const bApps = b.includes(`${path.sep}apps${path.sep}`) ? 0 : 1;
+    return aApps - bApps;
+  });
+
+  return candidates[0];
+}
+
+async function hasProjectMarker(dir: string): Promise<boolean> {
+  try {
+    await fsp.access(path.join(dir, "package.json"));
+    return true;
+  } catch {
+    /* continue */
+  }
+  try {
+    await fsp.access(path.join(dir, "index.html"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasDevPackage(dir: string): Promise<boolean> {
+  const pkgPath = path.join(dir, "package.json");
+  try {
+    const raw = await fsp.readFile(pkgPath, "utf-8");
+    const pkg = JSON.parse(raw) as { scripts?: Record<string, string> };
+    const scripts = pkg.scripts ?? {};
+    return Boolean(scripts.dev || scripts.start || scripts.serve || scripts.preview);
+  } catch {
+    return false;
+  }
+}
+
 export function allocateProjectDir(baseName: string): string {
   const workspace = getProjectsWorkspace();
   const slug = sanitizeName(baseName);

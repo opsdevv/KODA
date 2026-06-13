@@ -8,3 +8,11 @@ export function getApiOrigin(): string {
 export function getApiBase(): string {
   return `${getApiOrigin()}/api`;
 }
+
+/** Hostname for preview URLs when the IDE is opened via LAN or port-forwarding. */
+export function getPreviewPublicHost(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const { hostname } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") return undefined;
+  return hostname;
+}

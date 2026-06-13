@@ -4,3 +4,4 @@ export * from "./types/filesystem.js";
 export * from "./types/websocket.js";
 export * from "./types/git.js";
 export * from "./types/terminal.js";
+export * from "./types/preview.js";

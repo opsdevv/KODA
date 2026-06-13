@@ -28,6 +28,10 @@ export const config = {
     baseUrl: process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
     model: process.env.DEEPSEEK_MODEL ?? "deepseek-chat",
   },
+  deriv: {
+    apiToken: process.env.DERIV_API_TOKEN ?? "",
+    appId: process.env.DERIV_APP_ID ?? "65398",
+  },
   encryptionSecret: process.env.CIDER_ENCRYPTION_SECRET ?? "cider-dev-secret-change-in-prod",
   githubToken: process.env.GITHUB_TOKEN ?? "",
   rootDir: path.resolve(__dirname, "../.."),

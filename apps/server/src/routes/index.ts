@@ -8,6 +8,7 @@ import { gitService } from "../services/git.js";
 import { contextIndex } from "../services/context-index.js";
 import { memory } from "../services/memory.js";
 import { terminalService } from "../services/terminal.js";
+import { previewService } from "../services/preview.js";
 import { deepseek } from "../services/deepseek.js";
 import { config } from "../config.js";
 import { encryptSecret } from "../lib/security.js";
@@ -210,6 +211,42 @@ export async function registerRoutes(app: FastifyInstance) {
     const project = await projectService.get(id);
     if (!project) return reply.status(404).send({ error: "Not found" });
     return terminalService.runCommand(project.rootPath, body.command);
+  });
+
+  app.get("/api/projects/:id/preview", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const project = await projectService.get(id);
+    if (!project) return reply.status(404).send({ error: "Not found" });
+    return previewService.getStatus(id);
+  });
+
+  app.post("/api/projects/:id/preview", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z
+      .object({
+        openBrowser: z.boolean().optional(),
+        publicHost: z.string().optional(),
+      })
+      .parse(req.body ?? {});
+    const project = await projectService.get(id);
+    if (!project) return reply.status(404).send({ error: "Not found" });
+    try {
+      return await previewService.start(id, project.rootPath, {
+        openBrowser: body.openBrowser,
+        publicHost: body.publicHost,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return reply.status(400).send({ error: message });
+    }
+  });
+
+  app.delete("/api/projects/:id/preview", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const project = await projectService.get(id);
+    if (!project) return reply.status(404).send({ error: "Not found" });
+    previewService.stop(id);
+    return reply.status(204).send();
   });
 
   app.post("/api/settings/api-key", async (req) => {

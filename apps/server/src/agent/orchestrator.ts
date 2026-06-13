@@ -66,6 +66,7 @@ export class AgentOrchestrator {
 
     let finalResponse = "";
     let iterations = 0;
+    const iterationDurations: number[] = [];
 
     while (iterations < MAX_AGENT_ITERATIONS) {
       if (signal?.aborted) break;

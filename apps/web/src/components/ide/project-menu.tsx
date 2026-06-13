@@ -1,9 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { FolderOpen, FolderPlus, Upload, ChevronDown, HardDrive } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  FolderOpen,
+  FolderPlus,
+  Upload,
+  ChevronDown,
+  HardDrive,
+  ExternalLink,
+  Square,
+  Loader2,
+} from "lucide-react";
+import type { ProjectInfo } from "@cider/shared";
 import { api } from "@/lib/api";
+import { getPreviewPublicHost } from "@/lib/api-base";
 import { useIdeStore } from "@/stores/ide-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,10 +27,18 @@ export function ProjectMenu() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const { setProject } = useIdeStore();
+  const { projectId, setProject } = useIdeStore();
   const queryClient = useQueryClient();
+
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => api.listProjects(),
+    enabled: menuOpen,
+  });
 
   const activateProject = async (project: { id: string; rootPath: string; name: string }) => {
     setProject(project.id, project.rootPath, project.name);
@@ -29,6 +48,51 @@ export function ProjectMenu() {
     setSuccess(`Opened ${project.name}`);
     setError("");
     setTimeout(() => setSuccess(""), 4000);
+  };
+
+  const launchPreview = async (project: ProjectInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewLoadingId(project.id);
+    setError("");
+    try {
+      const result = await api.startProjectPreview(project.id, {
+        openBrowser: true,
+        publicHost: getPreviewPublicHost(),
+      });
+      const link = result.url ?? result.localUrl;
+      if (link) {
+        setPreviewUrls((prev) => ({ ...prev, [project.id]: link }));
+        setSuccess(
+          result.openedBrowser
+            ? `Launched ${project.name} in your browser`
+            : `Dev server running at ${link}`
+        );
+        setTimeout(() => setSuccess(""), 5000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPreviewLoadingId(null);
+    }
+  };
+
+  const stopPreview = async (project: ProjectInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewLoadingId(project.id);
+    try {
+      await api.stopProjectPreview(project.id);
+      setPreviewUrls((prev) => {
+        const next = { ...prev };
+        delete next[project.id];
+        return next;
+      });
+      setSuccess(`Stopped preview for ${project.name}`);
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPreviewLoadingId(null);
+    }
   };
 
   const openFolderInPlace = async () => {
@@ -43,6 +107,7 @@ export function ProjectMenu() {
 
       const project = await api.openProject(path);
       await activateProject(project);
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setMenuOpen(true);
@@ -74,6 +139,7 @@ export function ProjectMenu() {
         }
       });
       await activateProject(project);
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
       const count = "filesImported" in project ? project.filesImported : undefined;
       if (count) setSuccess(`Imported ${count} files into ${project.name}`);
       setUploadProgress(null);
@@ -93,6 +159,7 @@ export function ProjectMenu() {
     try {
       const project = await api.createProject(projectName.trim());
       await activateProject(project);
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
       setNewProjectOpen(false);
       setProjectName("");
     } catch (err) {
@@ -128,6 +195,7 @@ export function ProjectMenu() {
         }
       });
       await activateProject(project);
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
       setUploadProgress(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -172,7 +240,7 @@ export function ProjectMenu() {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-lg border border-cider-border bg-cider-panel py-1 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 max-h-[min(70vh,480px)] w-[min(92vw,320px)] overflow-y-auto rounded-lg border border-cider-border bg-cider-panel py-1 shadow-xl">
                 <button
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-white/5"
                   onClick={() => {
@@ -211,6 +279,84 @@ export function ProjectMenu() {
                   <FolderPlus className="h-4 w-4 text-cider-accent" />
                   New project
                 </button>
+
+                <div className="my-1 border-t border-cider-border" />
+                <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-cider-muted">
+                  Your projects
+                </p>
+
+                {projectsLoading && (
+                  <p className="px-3 py-2 text-xs text-cider-muted">Loading projects…</p>
+                )}
+
+                {!projectsLoading && projects.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-cider-muted">No saved projects yet</p>
+                )}
+
+                {projects.map((project) => {
+                  const isActive = project.id === projectId;
+                  const isPreviewLoading = previewLoadingId === project.id;
+                  const previewUrl = previewUrls[project.id];
+
+                  return (
+                    <div
+                      key={project.id}
+                      className={cn(
+                        "flex items-center gap-1 px-2 py-1.5 hover:bg-white/5",
+                        isActive && "bg-white/5"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate px-1 text-left text-sm"
+                        title={project.name}
+                        onClick={() => {
+                          void activateProject(project);
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {project.name}
+                      </button>
+                      {previewUrl ? (
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded p-1 text-cider-accent hover:bg-white/10"
+                          title={`Open ${previewUrl}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : null}
+                      {previewUrl ? (
+                        <button
+                          type="button"
+                          className="rounded p-1 text-cider-muted hover:bg-white/10 hover:text-cider-danger"
+                          title="Stop preview server"
+                          disabled={isPreviewLoading}
+                          onClick={(e) => void stopPreview(project, e)}
+                        >
+                          <Square className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="rounded p-1 text-cider-accent hover:bg-white/10"
+                          title="Start dev server and open in browser"
+                          disabled={isPreviewLoading}
+                          onClick={(e) => void launchPreview(project, e)}
+                        >
+                          {isPreviewLoading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

@@ -9,6 +9,7 @@ import { AiChatPanel } from "./ai-chat-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { CommandPalette } from "./command-palette";
 import { ProjectMenu } from "./project-menu";
+import { PreviewLaunchButton } from "./preview-launch-button";
 import { ServerStatus } from "./server-status";
 import { ThemeToggle } from "./theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ export function IdeLayout() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <ServerStatus />
+          <PreviewLaunchButton />
           <ProjectMenu />
           <span className="text-xs text-cider-muted">Ctrl+K · Ctrl+S</span>
         </div>

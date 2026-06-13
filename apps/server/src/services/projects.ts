@@ -9,8 +9,8 @@ import {
   allocateProjectDir,
   ensureWorkspace,
   extractZipStream,
+  findBestProjectRoot,
   importFolderFiles,
-  resolveProjectRoot,
   sanitizeName,
   validateZipFilename,
   type UploadProgress,
@@ -77,9 +77,41 @@ export class ProjectService {
     await ensureWorkspace();
     const destDir = allocateProjectDir(sanitizeName(name));
     await fs.mkdir(destDir, { recursive: true });
+    const slug = sanitizeName(name);
     await fs.writeFile(
       path.join(destDir, "README.md"),
       `# ${name}\n\nCreated with Cider.\n`,
+      "utf-8"
+    );
+    await fs.writeFile(
+      path.join(destDir, "index.html"),
+      `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${name}</title>
+</head>
+<body>
+  <h1>${name}</h1>
+  <p>Click <strong>Launch</strong> in Cider to preview this site.</p>
+</body>
+</html>
+`,
+      "utf-8"
+    );
+    await fs.writeFile(
+      path.join(destDir, "package.json"),
+      JSON.stringify(
+        {
+          name: slug,
+          private: true,
+          type: "module",
+          scripts: { dev: "vite", build: "vite build", preview: "vite preview" },
+        },
+        null,
+        2
+      ),
       "utf-8"
     );
     return this.open(destDir);
@@ -90,7 +122,7 @@ export class ProjectService {
     folderName: string
   ): Promise<ProjectInfo & { filesImported: number }> {
     const { destDir, filesWritten } = await importFolderFiles(files, folderName);
-    const rootPath = await resolveProjectRoot(destDir);
+    const rootPath = await findBestProjectRoot(destDir);
     const project = await this.open(rootPath);
     return { ...project, filesImported: filesWritten };
   }
@@ -113,7 +145,7 @@ export class ProjectService {
       throw new Error("Zip archive is empty or invalid");
     }
 
-    const rootPath = await resolveProjectRoot(destDir);
+    const rootPath = await findBestProjectRoot(destDir);
     onProgress?.({ phase: "done", filesExtracted: count });
     return this.open(rootPath);
   }
