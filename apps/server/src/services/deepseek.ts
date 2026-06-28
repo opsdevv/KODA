@@ -13,6 +13,11 @@ export interface StreamCallbacks {
 export class DeepSeekService {
   private client: OpenAI | null = null;
 
+  setApiKey(apiKey: string): void {
+    config.deepseek.apiKey = apiKey;
+    this.client = null;
+  }
+
   private getClient(): OpenAI {
     if (!this.client) {
       const apiKey = config.deepseek.apiKey;

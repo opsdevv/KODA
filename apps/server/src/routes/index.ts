@@ -264,7 +264,7 @@ export async function registerRoutes(app: FastifyInstance) {
         updatedAt: Date.now(),
       });
     }
-    config.deepseek.apiKey = body.apiKey;
+    deepseek.setApiKey(body.apiKey);
     return { ok: true };
   });
 

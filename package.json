@@ -4,6 +4,7 @@
   "private": true,
   "description": "Cider — Local AI coding IDE powered by DeepSeek",
   "scripts": {
+    "predev": "npx pnpm@9.15.0 --filter @cider/shared build",
     "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "npx pnpm@9.15.0 --filter @cider/server dev",
     "dev:web": "npx pnpm@9.15.0 --filter @cider/web dev",

@@ -21,8 +21,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["system-ui", "sans-serif"],
+        mono: ["Consolas", "monospace"],
       },
       animation: {
         "fade-in": "fadeIn 0.2s ease-out",
