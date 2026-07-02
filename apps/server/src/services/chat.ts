@@ -1,10 +1,10 @@
 import { eq, desc } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-import type { AiMode } from "@cider/shared";
+import type { AiMode } from "@koda/shared";
 import { getDb, schema } from "../db/index.js";
 import { agentOrchestrator } from "../agent/orchestrator.js";
-import type { AgentLoopEvent } from "@cider/shared";
+import type { AgentLoopEvent } from "@koda/shared";
 import { projectService } from "./projects.js";
 
 export class ChatService {

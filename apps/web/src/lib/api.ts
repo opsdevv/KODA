@@ -5,7 +5,7 @@ import type {
   GitStatus,
   ProjectPreviewStartResult,
   ProjectPreviewStatus,
-} from "@cider/shared";
+} from "@koda/shared";
 import { getApiBase } from "./api-base";
 
 const API = "/api";
@@ -271,6 +271,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message }),
     }),
+
+  createTerminalSession: (id: string, cols?: number, rows?: number) =>
+    request<{ id: string; projectId: string; cwd: string; cols: number; rows: number; createdAt: number }>(
+      `/projects/${id}/terminal/create`,
+      {
+        method: "POST",
+        body: JSON.stringify({ cols, rows }),
+      }
+    ),
 
   runCommand: (id: string, command: string) =>
     request<{ stdout: string; stderr: string; exitCode: number }>(`/projects/${id}/terminal/run`, {

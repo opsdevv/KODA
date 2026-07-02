@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, File, Folder, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import type { FileNode } from "@cider/shared";
+import type { FileNode } from "@koda/shared";
 import { api } from "@/lib/api";
 import { useIdeStore } from "@/stores/ide-store";
 import { cn } from "@/lib/utils";

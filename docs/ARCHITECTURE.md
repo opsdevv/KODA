@@ -1,8 +1,8 @@
-# Cider Architecture
+# KODA Architecture
 
 ## Overview
 
-Cider is a **local-first AI coding IDE** inspired by Cursor. It runs entirely on the user's machine:
+KODA is a **local-first AI coding IDE** inspired by Cursor. It runs entirely on the user's machine:
 
 | Layer | Technology | Port |
 |-------|------------|------|
@@ -23,7 +23,7 @@ Cider is a **local-first AI coding IDE** inspired by Cursor. It runs entirely on
 └───────────────────────────┬─────────────────────────────────┘
                             │ HTTP /api/* (rewrite) + WS :3847
 ┌───────────────────────────▼─────────────────────────────────┐
-│  @cider/server (Fastify)                                    │
+│  @koda/server (Fastify)                                    │
 │  ┌────────────┐ ┌──────────────┐ ┌──────────────────────┐ │
 │  │ Filesystem │ │ Agent Loop   │ │ Context Index (local) │ │
 │  │ Sandbox    │ │ ReAct+Tools  │ │ Bag-of-words embed    │ │

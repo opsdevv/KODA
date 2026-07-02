@@ -29,24 +29,24 @@ export function TerminalPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-cider-bg">
-      <div className="flex items-center justify-between border-b border-cider-border px-3 py-1.5">
-        <div className="flex items-center gap-2 text-xs text-cider-muted">
+    <div className="flex h-full flex-col bg-koda-bg">
+      <div className="flex items-center justify-between border-b border-koda-border px-3 py-1.5">
+        <div className="flex items-center gap-2 text-xs text-koda-muted">
           <Terminal className="h-3.5 w-3.5" />
           Terminal
         </div>
         <Button size="sm" variant="ghost" onClick={clearTerminal}>Clear</Button>
       </div>
-      <pre className="flex-1 overflow-auto p-3 font-mono text-xs text-cider-text/90">
+      <pre className="flex-1 overflow-auto p-3 font-mono text-xs text-koda-text/90">
         {terminalOutput.join("\n") || "Ready."}
       </pre>
-      <div className="flex gap-2 border-t border-cider-border p-2">
+      <div className="flex gap-2 border-t border-koda-border p-2">
         <input
           value={command}
           onChange={(e) => setCommand(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && run()}
-          placeholder="Enter command..."
-          className="flex-1 rounded bg-cider-panel px-2 py-1 font-mono text-xs outline-none focus:ring-1 focus:ring-cider-accent"
+          placeholder="Enter command…"
+          className="flex-1 rounded bg-koda-panel px-2 py-1 font-mono text-xs outline-none focus:ring-1 focus:ring-koda-accent"
           disabled={!projectId || running}
         />
         <Button size="sm" onClick={run} disabled={running || !projectId}>Run</Button>

@@ -68,7 +68,7 @@ async function main() {
   });
 
   await app.listen({ host: config.host, port: config.port });
-  logger.info(`Cider server running at http://${config.host}:${config.port}`);
+  logger.info(`KODA server running at http://${config.host}:${config.port}`);
 }
 
 main().catch((err) => {

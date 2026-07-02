@@ -1,5 +1,5 @@
 {
-  "name": "@cider/desktop",
+  "name": "@koda/desktop",
   "version": "0.1.0",
   "private": true,
   "main": "main.js",

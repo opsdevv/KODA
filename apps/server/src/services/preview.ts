@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
-import type { ProjectPreviewStartResult, ProjectPreviewStatus } from "@cider/shared";
+import type { ProjectPreviewStartResult, ProjectPreviewStatus } from "@koda/shared";
 import { logger } from "../lib/logger.js";
 
 type PackageManager = "npm" | "pnpm" | "yarn";

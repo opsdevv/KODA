@@ -35,7 +35,7 @@ export function PreviewLaunchButton() {
         href={previewUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-xs text-cider-accent hover:underline"
+        className="text-xs text-koda-accent hover:underline"
         title={previewUrl}
       >
         Preview

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AiMode } from "@cider/shared";
+import type { AiMode } from "@koda/shared";
 import { clearWorkspace, saveWorkspace } from "@/lib/workspace-persist";
 
 export interface EditorTab {
@@ -36,6 +36,8 @@ interface IdeState {
   reasoningTrace: string;
   /** Iteration count during agent loops */
   thinkingIteration: number;
+  /** Current agent activity status (e.g., "Thinking...", "Executing tool X...") */
+  agentActivity: string;
   pendingToolApproval: { id: string; name: string; args: Record<string, unknown> } | null;
   commandPaletteOpen: boolean;
   terminalOutput: string[];
@@ -63,6 +65,7 @@ interface IdeState {
   setStreaming: (v: boolean) => void;
   setThinkingIteration: (iteration: number) => void;
   setReasoningTrace: (trace: string) => void;
+  setAgentActivity: (activity: string) => void;
   setPendingToolApproval: (v: IdeState["pendingToolApproval"]) => void;
   setCommandPaletteOpen: (v: boolean) => void;
   appendTerminal: (line: string) => void;
@@ -87,6 +90,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
   isStreaming: false,
   reasoningTrace: "",
   thinkingIteration: 0,
+  agentActivity: "",
   pendingToolApproval: null,
   commandPaletteOpen: false,
   terminalOutput: [],
@@ -105,6 +109,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       isStreaming: false,
       reasoningTrace: "",
       thinkingIteration: 0,
+      agentActivity: "",
       pendingToolApproval: null,
     });
   },
@@ -157,6 +162,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
       isStreaming: false,
       reasoningTrace: "",
       thinkingIteration: 0,
+      agentActivity: "",
       pendingToolApproval: null,
     }),
   setMessages: (messages) => set({ messages }),
@@ -165,7 +171,7 @@ export const useIdeStore = create<IdeState>((set, get) => ({
     set((s) => ({ streamingContent: s.streamingContent + delta })),
   finishStream: () =>
     set((s) => {
-      if (!s.streamingContent) return { isStreaming: false, reasoningTrace: "", thinkingIteration: 0 };
+      if (!s.streamingContent) return { isStreaming: false, reasoningTrace: "", thinkingIteration: 0, agentActivity: "" };
       const msg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -177,11 +183,13 @@ export const useIdeStore = create<IdeState>((set, get) => ({
         isStreaming: false,
         reasoningTrace: "",
         thinkingIteration: 0,
+        agentActivity: "",
       };
     }),
-  setStreaming: (v) => set({ isStreaming: v, streamingContent: v ? "" : get().streamingContent }),
+  setStreaming: (v) => set({ isStreaming: v, streamingContent: v ? "" : get().streamingContent, agentActivity: v ? get().agentActivity : "" }),
   setThinkingIteration: (iteration) => set({ thinkingIteration: iteration }),
   setReasoningTrace: (trace) => set({ reasoningTrace: trace }),
+  setAgentActivity: (activity) => set({ agentActivity: activity }),
   setPendingToolApproval: (v) => set({ pendingToolApproval: v }),
   setCommandPaletteOpen: (v) => set({ commandPaletteOpen: v }),
   appendTerminal: (line) => set((s) => ({ terminalOutput: [...s.terminalOutput, line] })),

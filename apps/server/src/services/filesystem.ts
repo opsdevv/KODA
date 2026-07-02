@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { FileNode, FileReadResult, FileSearchResult } from "@cider/shared";
+import type { FileNode, FileReadResult, FileSearchResult } from "@koda/shared";
 import { assertPathAllowed, shouldIgnoreEntry } from "../lib/security.js";
 import { logger } from "../lib/logger.js";
 

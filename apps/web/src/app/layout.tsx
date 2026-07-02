@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cider — Local AI IDE",
+  title: "KODA — Local AI IDE",
   description: "AI-first coding IDE powered by DeepSeek",
 };
 

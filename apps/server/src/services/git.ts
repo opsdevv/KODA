@@ -1,5 +1,5 @@
 import { simpleGit, type SimpleGit } from "simple-git";
-import type { GitStatus, GitFileChange } from "@cider/shared";
+import type { GitStatus, GitFileChange } from "@koda/shared";
 import { config } from "../config.js";
 
 export class GitService {

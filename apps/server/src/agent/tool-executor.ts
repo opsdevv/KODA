@@ -4,7 +4,7 @@ import { memory } from "../services/memory.js";
 import { gitService } from "../services/git.js";
 import { terminalService } from "../services/terminal.js";
 import { logger } from "../lib/logger.js";
-import type { FileChange } from "@cider/shared";
+import type { FileChange } from "@koda/shared";
 
 export interface ToolContext {
   projectId: string;

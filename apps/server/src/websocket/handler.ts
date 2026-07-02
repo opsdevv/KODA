@@ -1,10 +1,12 @@
 import type { WebSocket } from "@fastify/websocket";
-import type { WsClientMessage, WsServerMessage, AgentLoopEvent } from "@cider/shared";
+import type { WsClientMessage, WsServerMessage, AgentLoopEvent } from "@koda/shared";
 import { chatService } from "../services/chat.js";
 import { logger } from "../lib/logger.js";
 import { config } from "../config.js";
+import { terminalService } from "../services/terminal.js";
 
 const pendingApprovals = new Map<string, { resolve: (v: boolean) => void }>();
+const activeTerminalListeners = new Map<string, () => void>();
 
 export function handleWebSocket(socket: WebSocket) {
   let abortController: AbortController | null = null;
@@ -14,6 +16,27 @@ export function handleWebSocket(socket: WebSocket) {
   const send = (msg: WsServerMessage) => {
     if (socket.readyState === socket.OPEN) {
       socket.send(JSON.stringify(msg));
+    }
+  };
+
+  // Helper to listen to terminal output
+  const listenToTerminal = (sessionId: string) => {
+    if (activeTerminalListeners.has(sessionId)) return;
+    const sessionData = terminalService.getSession(sessionId);
+    if (sessionData?.ptyProcess) {
+      const onData = (data: string) => {
+        send({ type: "terminal:output", sessionId, data });
+      };
+      const onExit = (code: number) => {
+        send({ type: "terminal:exit", sessionId, code });
+        activeTerminalListeners.delete(sessionId);
+      };
+      sessionData.ptyProcess.on("data", onData);
+      sessionData.ptyProcess.on("exit", onExit);
+      activeTerminalListeners.set(sessionId, () => {
+        sessionData.ptyProcess.off("data", onData);
+        sessionData.ptyProcess.off("exit", onExit);
+      });
     }
   };
 
@@ -70,7 +93,7 @@ export function handleWebSocket(socket: WebSocket) {
                       pendingApprovals.delete(toolCallId);
                       resolve(true);
                     }
-                  }, 120_000);
+                  }, 120000);
                 });
               }
             );
@@ -83,6 +106,7 @@ export function handleWebSocket(socket: WebSocket) {
 
         case "chat:cancel":
           abortController?.abort();
+          send({ type: "chat:done", conversationId: activeConversationId ?? "", messageId: "" });
           break;
 
         case "agent:approve_tool": {
@@ -103,6 +127,24 @@ export function handleWebSocket(socket: WebSocket) {
           break;
         }
 
+        case "terminal:input": {
+          listenToTerminal(msg.sessionId);
+          const sessionData = terminalService.getSession(msg.sessionId);
+          if (sessionData?.ptyProcess) {
+            sessionData.ptyProcess.write(msg.data);
+          }
+          break;
+        }
+
+        case "terminal:resize": {
+          listenToTerminal(msg.sessionId);
+          const sessionData = terminalService.getSession(msg.sessionId);
+          if (sessionData?.ptyProcess) {
+            sessionData.ptyProcess.resize(msg.cols, msg.rows);
+          }
+          break;
+        }
+
         default:
           logger.debug({ type: (msg as { type: string }).type }, "Unhandled WS message");
       }
@@ -114,5 +156,10 @@ export function handleWebSocket(socket: WebSocket) {
 
   socket.on("close", () => {
     abortController?.abort();
+    // Clean up terminal listeners
+    for (const [, cleanup] of activeTerminalListeners) {
+      cleanup();
+    }
+    activeTerminalListeners.clear();
   });
 }

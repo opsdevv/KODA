@@ -1,4 +1,4 @@
-const STORAGE_KEY = "cider.workspace";
+const STORAGE_KEY = "koda.workspace";
 
 export interface PersistedWorkspace {
   projectId: string;

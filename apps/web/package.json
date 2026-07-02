@@ -1,5 +1,5 @@
 {
-  "name": "@cider/web",
+  "name": "@koda/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@cider/shared": "workspace:*",
+    "@koda/shared": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
@@ -30,6 +30,8 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

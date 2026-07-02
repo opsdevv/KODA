@@ -1,9 +1,9 @@
-import type { WsClientMessage, WsServerMessage } from "@cider/shared";
+import type { WsClientMessage, WsServerMessage } from "@koda/shared";
 import { getApiOrigin } from "./api-base";
 
 export type WsHandler = (msg: WsServerMessage) => void;
 
-export class CiderWebSocket {
+export class KodaWebSocket {
   private ws: WebSocket | null = null;
   private handlers = new Set<WsHandler>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -92,4 +92,4 @@ export class CiderWebSocket {
   }
 }
 
-export const ciderWs = typeof window !== "undefined" ? new CiderWebSocket() : null;
+export const kodaWs = typeof window !== "undefined" ? new KodaWebSocket() : null;

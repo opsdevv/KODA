@@ -1,6 +1,6 @@
-# Cider
+# KODA
 
-**Cider** is a local-first, browser-based AI coding IDE inspired by Cursor. It uses the **DeepSeek API** for reasoning and runs entirely on your machine.
+**KODA** is a local-first, browser-based AI coding IDE inspired by Cursor. It uses the **DeepSeek API** for reasoning and runs entirely on your machine.
 
 ![Architecture](docs/ARCHITECTURE.md)
 

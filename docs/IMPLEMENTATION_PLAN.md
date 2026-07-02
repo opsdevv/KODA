@@ -1,4 +1,4 @@
-# Cider Implementation Plan
+# KODA Implementation Plan
 
 ## Phase 1 — Foundation ✅ (Current)
 

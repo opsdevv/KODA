@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ProjectInfo } from "@cider/shared";
+import type { ProjectInfo } from "@koda/shared";
 import { getDb, schema } from "../db/index.js";
 import { contextIndex } from "./context-index.js";
 import {

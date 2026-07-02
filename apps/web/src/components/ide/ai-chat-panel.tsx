@@ -16,10 +16,10 @@ import {
   Trash2,
   PanelRightClose,
 } from "lucide-react";
-import type { AiMode, FileChange } from "@cider/shared";
+import type { AiMode, FileChange } from "@koda/shared";
 import { useIdeStore } from "@/stores/ide-store";
 import { api } from "@/lib/api";
-import { ciderWs } from "@/lib/websocket";
+import { kodaWs } from "@/lib/websocket";
 import { Button } from "@/components/ui/button";
 import { ChatMarkdown } from "@/components/ide/chat-markdown";
 import { cn } from "@/lib/utils";
@@ -64,6 +64,8 @@ export function AiChatPanel() {
     pendingToolApproval,
     setPendingToolApproval,
     toggleChat,
+    agentActivity,
+    setAgentActivity,
   } = useIdeStore();
 
   const { data: conversations = [] } = useQuery({
@@ -75,8 +77,8 @@ export function AiChatPanel() {
   useEffect(() => {
     if (!projectId) return;
 
-    void ciderWs?.connect();
-    const unsub = ciderWs?.subscribe((msg) => {
+    void kodaWs?.connect();
+    const unsub = kodaWs?.subscribe((msg) => {
       const store = useIdeStore.getState();
       if (msg.type === "chat:delta") store.appendStream(msg.delta);
       if (msg.type === "chat:done") {
@@ -84,30 +86,51 @@ export function AiChatPanel() {
         void queryClient.invalidateQueries({ queryKey: ["conversations", projectId] });
       }
       if (msg.type === "agent:event") {
-        const event = msg.event as { type: string; payload?: Record<string, unknown> };
-        if (event.type === "tool_call" && event.payload?.awaiting_approval) {
-          store.setPendingToolApproval({
-            id: event.payload.id as string,
-            name: event.payload.name as string,
-            args: event.payload.arguments as Record<string, unknown>,
-          });
-        }
-        if (event.type === "file_changes" && projectId) {
-          const changes = (event.payload as { changes?: FileChange[] })?.changes ?? [];
-          void queryClient.invalidateQueries({ queryKey: ["tree", projectId] });
-          void (async () => {
-            for (const change of changes) {
-              if (change.action === "delete") continue;
-              const open = store.tabs.find((t) => t.path === change.path);
-              if (!open) continue;
-              try {
-                const file = await api.readFile(projectId, change.path);
-                store.reloadTab(change.path, file.content, file.language);
-              } catch {
-                /* file may have been removed */
-              }
+        const event = msg.event as any;
+        switch (event.type) {
+          case "thinking":
+            store.setAgentActivity(`Thinking... (Iteration ${event.payload.iteration})`);
+            break;
+          case "tool_call":
+            if (event.payload.awaiting_approval) {
+              store.setPendingToolApproval({
+                id: event.payload.id,
+                name: event.payload.name,
+                args: event.payload.arguments,
+              });
+            } else {
+              store.setAgentActivity(`Executing tool: ${event.payload.name}...`);
             }
-          })();
+            break;
+          case "tool_result":
+            store.setAgentActivity("Processing tool result...");
+            break;
+          case "file_changes":
+            store.setAgentActivity("Updating files...");
+            const changes = (event.payload as any)?.changes ?? [];
+            void queryClient.invalidateQueries({ queryKey: ["tree", projectId] });
+            void (async () => {
+              for (const change of changes) {
+                if (change.action === "delete") continue;
+                const open = store.tabs.find((t) => t.path === change.path);
+                if (!open) continue;
+                try {
+                  const file = await api.readFile(projectId, change.path);
+                  store.reloadTab(change.path, file.content, file.language);
+                } catch {
+                  /* file may have been removed */
+                }
+              }
+            })();
+            break;
+          case "checkpoint":
+            store.setAgentActivity(event.payload.label);
+            break;
+          case "status":
+            if (event.payload.status === "completed") {
+              store.setAgentActivity("");
+            }
+            break;
         }
       }
       if (msg.type === "error") {
@@ -117,6 +140,7 @@ export function AiChatPanel() {
           content: `Error: ${msg.message}`,
         });
         store.setStreaming(false);
+        store.setAgentActivity("");
       }
     });
 
@@ -144,9 +168,10 @@ export function AiChatPanel() {
     setInput("");
     addMessage({ id: crypto.randomUUID(), role: "user", content: text });
     setStreaming(true);
+    setAgentActivity("Starting...");
 
     const convId = await ensureConversation();
-    ciderWs?.send({
+    kodaWs?.send({
       type: "chat:start",
       conversationId: convId,
       projectId,
@@ -186,7 +211,7 @@ export function AiChatPanel() {
 
   const approveTool = (approved: boolean) => {
     if (!pendingToolApproval || !conversationId) return;
-    ciderWs?.send({
+    kodaWs?.send({
       type: approved ? "agent:approve_tool" : "agent:reject_tool",
       taskId: "",
       toolCallId: pendingToolApproval.id,
@@ -200,8 +225,8 @@ export function AiChatPanel() {
 
   return (
     <div className="flex h-full flex-col glass">
-      <div className="flex shrink-0 items-center gap-1 border-b border-cider-border px-2 py-2">
-        <Sparkles className="h-4 w-4 shrink-0 text-cider-accent" />
+      <div className="flex shrink-0 items-center gap-1 border-b border-koda-border px-2 py-2">
+        <Sparkles className="h-4 w-4 shrink-0 text-koda-accent" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">{activeTitle}</span>
         <Button
           size="icon"
@@ -239,11 +264,11 @@ export function AiChatPanel() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="shrink-0 overflow-hidden border-b border-cider-border"
+            className="shrink-0 overflow-hidden border-b border-koda-border"
           >
             <div className="max-h-40 overflow-y-auto p-2">
               {conversations.length === 0 ? (
-                <p className="px-2 py-3 text-center text-xs text-cider-muted">No previous chats</p>
+                <p className="px-2 py-3 text-center text-xs text-koda-muted">No previous chats</p>
               ) : (
                 <ul className="space-y-0.5">
                   {conversations.map((conv) => {
@@ -256,8 +281,8 @@ export function AiChatPanel() {
                           className={cn(
                             "group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
                             conversationId === conv.id
-                              ? "bg-cider-accent/15 text-cider-accent"
-                              : "text-cider-muted hover:bg-white/5 hover:text-[#e8e8ed]"
+                              ? "bg-koda-accent/15 text-koda-accent"
+                              : "text-koda-muted hover:bg-white/5 hover:text-[#e8e8ed]"
                           )}
                         >
                           <MessageSquare className="h-3.5 w-3.5 shrink-0 opacity-60" />
@@ -271,7 +296,7 @@ export function AiChatPanel() {
                             onKeyDown={(e) => {
                               if (e.key === "Enter") void handleDeleteConversation(conv.id, e as unknown as React.MouseEvent);
                             }}
-                            className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-cider-danger/20 hover:text-cider-danger group-hover:opacity-100"
+                            className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-koda-danger/20 hover:text-koda-danger group-hover:opacity-100"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </span>
@@ -286,7 +311,7 @@ export function AiChatPanel() {
         )}
       </AnimatePresence>
 
-      <div className="flex shrink-0 gap-1 border-b border-cider-border p-2">
+      <div className="flex shrink-0 gap-1 border-b border-koda-border p-2">
         {MODES.map((m) => (
           <button
             key={m.id}
@@ -296,8 +321,8 @@ export function AiChatPanel() {
             className={cn(
               "flex-1 rounded-md px-2 py-1.5 text-xs transition-all",
               aiMode === m.id
-                ? "bg-cider-accent/20 text-cider-accent ring-1 ring-cider-accent/40"
-                : "text-cider-muted hover:bg-white/5"
+                ? "bg-koda-accent/20 text-koda-accent ring-1 ring-koda-accent/40"
+                : "text-koda-muted hover:bg-white/5"
             )}
           >
             <div className="font-medium">{m.label}</div>
@@ -309,8 +334,8 @@ export function AiChatPanel() {
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         {messages.length === 0 && !isStreaming && (
           <div className="flex h-full flex-col items-center justify-center gap-2 py-12 text-center">
-            <Bot className="h-8 w-8 text-cider-accent/40" />
-            <p className="text-sm text-cider-muted">
+            <Bot className="h-8 w-8 text-koda-accent/40" />
+            <p className="text-sm text-koda-muted">
               {projectId
                 ? "Use Agent mode to edit files in your project"
                 : "Open a project from the Project menu first"}
@@ -334,16 +359,16 @@ export function AiChatPanel() {
               )}
             >
               {msg.role === "assistant" && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cider-accent/20">
-                  <Bot className="h-4 w-4 text-cider-accent" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-koda-accent/20">
+                  <Bot className="h-4 w-4 text-koda-accent" />
                 </div>
               )}
               <div
                 className={cn(
                   "max-w-[88%] rounded-xl px-3 py-2.5",
                   msg.role === "user"
-                    ? "bg-cider-accent/20 text-[#f0f0f5]"
-                    : "bg-cider-panel ring-1 ring-white/5"
+                    ? "bg-koda-accent/20 text-[#f0f0f5]"
+                    : "bg-koda-panel ring-1 ring-white/5"
                 )}
               >
                 {msg.role === "user" ? (
@@ -357,14 +382,14 @@ export function AiChatPanel() {
 
           {isStreaming && (
             <div className="flex gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cider-accent/20">
-                <Bot className="h-4 w-4 text-cider-accent" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-koda-accent/20">
+                <Bot className="h-4 w-4 text-koda-accent" />
               </div>
-              <div className="max-w-[88%] rounded-xl bg-cider-panel px-3 py-2.5 ring-1 ring-white/5 streaming-cursor">
+              <div className="max-w-[88%] rounded-xl bg-koda-panel px-3 py-2.5 ring-1 ring-white/5 streaming-cursor">
                 {streamingContent ? (
                   <ChatMarkdown content={streamingContent} />
                 ) : (
-                  <span className="text-sm text-cider-muted">Thinking…</span>
+                  <span className="text-sm text-koda-accent">{agentActivity || "Thinking..."}</span>
                 )}
               </div>
             </div>
@@ -378,12 +403,12 @@ export function AiChatPanel() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="shrink-0 border-t border-cider-warning/30 bg-cider-warning/10 p-3"
+            className="shrink-0 border-t border-koda-warning/30 bg-koda-warning/10 p-3"
           >
-            <p className="text-xs font-medium text-cider-warning">
+            <p className="text-xs font-medium text-koda-warning">
               Approve: {pendingToolApproval.name}
             </p>
-            <pre className="mt-1 max-h-20 overflow-auto text-[10px] text-cider-muted">
+            <pre className="mt-1 max-h-20 overflow-auto text-[10px] text-koda-muted">
               {JSON.stringify(pendingToolApproval.args, null, 2)}
             </pre>
             <div className="mt-2 flex gap-2">
@@ -399,11 +424,11 @@ export function AiChatPanel() {
       </AnimatePresence>
 
       {conversationId && messages.length > 0 && !isStreaming && (
-        <div className="shrink-0 border-t border-cider-border/50 px-3 py-1.5">
+        <div className="shrink-0 border-t border-koda-border/50 px-3 py-1.5">
           <button
             type="button"
             onClick={handleNewChat}
-            className="flex w-full items-center justify-center gap-1 rounded-md py-1 text-[11px] text-cider-muted transition-colors hover:bg-white/5 hover:text-[#e8e8ed]"
+            className="flex w-full items-center justify-center gap-1 rounded-md py-1 text-[11px] text-koda-muted transition-colors hover:bg-white/5 hover:text-[#e8e8ed]"
           >
             <X className="h-3 w-3" />
             Close this chat and start fresh
@@ -411,7 +436,7 @@ export function AiChatPanel() {
         </div>
       )}
 
-      <div className="shrink-0 border-t border-cider-border p-3">
+      <div className="shrink-0 border-t border-koda-border p-3">
         <div className="flex gap-2">
           <textarea
             value={input}
@@ -425,7 +450,7 @@ export function AiChatPanel() {
             placeholder={`Message in ${aiMode} mode…`}
             rows={2}
             disabled={!projectId}
-            className="flex-1 resize-none rounded-lg border border-cider-border bg-cider-bg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-cider-accent disabled:opacity-50"
+            className="flex-1 resize-none rounded-lg border border-koda-border bg-koda-bg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-koda-accent disabled:opacity-50"
           />
           {isStreaming ? (
             <Button
@@ -433,7 +458,7 @@ export function AiChatPanel() {
               variant="outline"
               onClick={() =>
                 conversationId &&
-                ciderWs?.send({ type: "chat:cancel", conversationId })
+                kodaWs?.send({ type: "chat:cancel", conversationId })
               }
             >
               <Square className="h-4 w-4" />

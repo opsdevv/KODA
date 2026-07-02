@@ -1,6 +1,6 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { v4 as uuid } from "uuid";
-import type { AiMode, AgentLoopEvent, PlanStep } from "@cider/shared";
+import type { AiMode, AgentLoopEvent, PlanStep } from "@koda/shared";
 import { deepseek } from "../services/deepseek.js";
 import { contextIndex } from "../services/context-index.js";
 import { memory } from "../services/memory.js";
@@ -11,13 +11,13 @@ import { logger } from "../lib/logger.js";
 const MAX_AGENT_ITERATIONS = 25;
 
 const MODE_PROMPTS: Record<AiMode, string> = {
-  ask: `You are Cider AI in Ask Mode. Answer coding questions clearly. You may suggest code but do not claim to have modified files unless tools were used. Be concise and accurate.`,
-  plan: `You are Cider AI in Plan Mode. Analyze the codebase and produce a structured implementation plan as JSON in a fenced code block:
+  ask: `You are KODA AI in Ask Mode. Answer coding questions clearly. You may suggest code but do not claim to have modified files unless tools were used. Be concise and accurate.`,
+  plan: `You are KODA AI in Plan Mode. Analyze the codebase and produce a structured implementation plan as JSON in a fenced code block:
 \`\`\`json
 {"steps":[{"title":"...","description":"..."}]}
 \`\`\`
 Do NOT execute changes. Wait for user approval before implementation.`,
-  agent: `You are Cider AI in Agent Mode. You autonomously complete coding tasks using tools.
+  agent: `You are KODA AI in Agent Mode. You autonomously complete coding tasks using tools.
 Follow ReAct: think briefly, act with tools, observe results, self-correct.
 Prefer small incremental edits. Run tests when relevant. Summarize when done.`,
 };
@@ -68,78 +68,97 @@ export class AgentOrchestrator {
     let iterations = 0;
     const iterationDurations: number[] = [];
 
-    while (iterations < MAX_AGENT_ITERATIONS) {
-      if (signal?.aborted) break;
-      iterations++;
-
-      emit({ type: "thinking", taskId, payload: { iteration: iterations } });
-
-      let iterationContent = "";
-      const { content, toolCalls } = await deepseek.streamChat(messages, {
-        systemPrompt,
-        tools,
-        signal,
-        onDelta: (delta) => {
-          iterationContent += delta;
-          emit({ type: "message_delta", taskId, payload: { delta } });
-        },
-      });
-
-      finalResponse += content;
-
-      if (!toolCalls.length || mode === "plan") {
-        if (mode === "plan") {
-          const plan = parsePlan(content);
-          if (plan.length) {
-            emit({ type: "plan", taskId, payload: { steps: plan } });
-            emit({ type: "status", taskId, payload: { status: "awaiting_approval" } });
-          }
+    try {
+      while (iterations < MAX_AGENT_ITERATIONS) {
+        if (signal?.aborted) {
+          emit({ type: "status", taskId, payload: { status: "completed" } });
+          emit({ type: "checkpoint", taskId, payload: { label: "Task cancelled" } });
+          return finalResponse;
         }
-        emit({ type: "message_done", taskId, payload: { content: finalResponse } });
-        emit({ type: "status", taskId, payload: { status: "completed" } });
-        return finalResponse;
-      }
+        iterations++;
 
-      messages.push({
-        role: "assistant",
-        content: content || null,
-        tool_calls: toolCalls.map((tc) => ({
-          id: tc.id,
-          type: "function" as const,
-          function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
-        })),
-      });
+        emit({ type: "thinking", taskId, payload: { iteration: iterations } });
 
-      for (const tc of toolCalls) {
-        emit({ type: "tool_call", taskId, payload: { id: tc.id, name: tc.name, arguments: tc.arguments } });
+        let iterationContent = "";
+        const { content, toolCalls } = await deepseek.streamChat(messages, {
+          systemPrompt,
+          tools,
+          signal,
+          onDelta: (delta) => {
+            iterationContent += delta;
+            emit({ type: "message_delta", taskId, payload: { delta } });
+          },
+        });
 
-        let result: string;
-        try {
-          if (toolRequiresApproval(tc.name) && options.onToolApproval) {
-            const approved = await options.onToolApproval(tc.id, tc.name, tc.arguments);
-            if (!approved) {
-              result = "User rejected this action";
+        finalResponse += content;
+
+        if (!toolCalls.length || mode === "plan") {
+          if (mode === "plan") {
+            const plan = parsePlan(content);
+            if (plan.length) {
+              emit({ type: "plan", taskId, payload: { steps: plan } });
+              emit({ type: "status", taskId, payload: { status: "awaiting_approval" } });
+            }
+          }
+          emit({ type: "message_done", taskId, payload: { content: finalResponse } });
+          emit({ type: "status", taskId, payload: { status: "completed" } });
+          return finalResponse;
+        }
+
+        messages.push({
+          role: "assistant",
+          content: content || null,
+          tool_calls: toolCalls.map((tc) => ({
+            id: tc.id,
+            type: "function" as const,
+            function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+          })),
+        });
+
+        for (const tc of toolCalls) {
+          if (signal?.aborted) {
+            emit({ type: "status", taskId, payload: { status: "completed" } });
+            emit({ type: "checkpoint", taskId, payload: { label: "Task cancelled" } });
+            return finalResponse;
+          }
+
+          emit({ type: "tool_call", taskId, payload: { id: tc.id, name: tc.name, arguments: tc.arguments } });
+
+          let result: string;
+          try {
+            if (toolRequiresApproval(tc.name) && options.onToolApproval) {
+              const approved = await options.onToolApproval(tc.id, tc.name, tc.arguments);
+              if (!approved) {
+                result = "User rejected this action";
+              } else {
+                result = await toolExecutor.execute(tc.name, tc.arguments, toolCtx, tc.id);
+              }
             } else {
               result = await toolExecutor.execute(tc.name, tc.arguments, toolCtx, tc.id);
             }
-          } else {
-            result = await toolExecutor.execute(tc.name, tc.arguments, toolCtx, tc.id);
+          } catch (err) {
+            result = `Error: ${err instanceof Error ? err.message : String(err)}`;
+            logger.error({ err, tool: tc.name }, "Tool execution failed");
           }
-        } catch (err) {
-          result = `Error: ${err instanceof Error ? err.message : String(err)}`;
-          logger.error({ err, tool: tc.name }, "Tool execution failed");
+
+          emit({ type: "tool_result", taskId, payload: { id: tc.id, result: result.slice(0, 2000) } });
+
+          messages.push({
+            role: "tool",
+            tool_call_id: tc.id,
+            content: result,
+          });
         }
 
-        emit({ type: "tool_result", taskId, payload: { id: tc.id, result: result.slice(0, 2000) } });
-
-        messages.push({
-          role: "tool",
-          tool_call_id: tc.id,
-          content: result,
-        });
+        emit({ type: "checkpoint", taskId, payload: { label: `Iteration ${iterations} complete` } });
       }
-
-      emit({ type: "checkpoint", taskId, payload: { label: `Iteration ${iterations} complete` } });
+    } catch (err) {
+      if (signal?.aborted) {
+        emit({ type: "status", taskId, payload: { status: "completed" } });
+        emit({ type: "checkpoint", taskId, payload: { label: "Task cancelled" } });
+        return finalResponse;
+      }
+      throw err;
     }
 
     emit({ type: "status", taskId, payload: { status: "completed" } });

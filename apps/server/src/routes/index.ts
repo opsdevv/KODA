@@ -205,6 +205,15 @@ export async function registerRoutes(app: FastifyInstance) {
     return memory.list(id);
   });
 
+  app.post("/api/projects/:id/terminal/create", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = z.object({ cols: z.number().optional(), rows: z.number().optional() }).parse(req.body);
+    const project = await projectService.get(id);
+    if (!project) return reply.status(404).send({ error: "Not found" });
+    const session = terminalService.createSession(id, project.rootPath, body.cols || 80, body.rows || 24);
+    return session;
+  });
+
   app.post("/api/projects/:id/terminal/run", async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = z.object({ command: z.string() }).parse(req.body);

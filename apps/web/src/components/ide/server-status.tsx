@@ -33,11 +33,11 @@ export function ServerStatus() {
     <span
       className={cn(
         "flex items-center gap-1.5 text-[10px]",
-        online ? "text-cider-success" : "text-cider-danger"
+        online ? "text-koda-success" : "text-koda-danger"
       )}
       title={online ? "Backend connected" : "Start backend: npm run dev:server"}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", online ? "bg-cider-success" : "bg-cider-danger")} />
+      <span className={cn("h-1.5 w-1.5 rounded-full", online ? "bg-koda-success" : "bg-koda-danger")} />
       {online ? "Server online" : "Server offline — run npm run dev"}
     </span>
   );

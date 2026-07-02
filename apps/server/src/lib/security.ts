@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { DANGEROUS_COMMAND_PATTERNS } from "@cider/shared";
+import { DANGEROUS_COMMAND_PATTERNS } from "@koda/shared";
 import { config } from "../config.js";
 
 const IGNORED_DIRS = new Set([
@@ -32,7 +32,7 @@ export function assertPathAllowed(rootPath: string, targetPath: string): string 
 }
 
 export function shouldIgnoreEntry(name: string): boolean {
-  return IGNORED_DIRS.has(name) || name.startsWith(".");
+  return IGNORED_DIRS.has(name);
 }
 
 export function isDangerousCommand(command: string): boolean {

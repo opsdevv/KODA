@@ -20,7 +20,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn(
         "flex items-center gap-1.5 text-[10px] transition-colors",
-        "text-cider-muted hover:text-cider-text"
+        "text-koda-muted hover:text-koda-text"
       )}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >

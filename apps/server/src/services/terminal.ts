@@ -1,27 +1,75 @@
 import { spawn } from "node:child_process";
 import { v4 as uuid } from "uuid";
-import type { CommandExecutionResult, TerminalSession } from "@cider/shared";
+import type { CommandExecutionResult, TerminalSession } from "@koda/shared";
 import { isDangerousCommand } from "../lib/security.js";
 import { logger } from "../lib/logger.js";
 
 export class TerminalService {
-  private sessions = new Map<string, TerminalSession>();
+  private sessions = new Map<string, { session: TerminalSession; ptyProcess: any }>();
+  private ptyModule: any = null;
 
-  createSession(projectId: string, cwd: string, cols = 80, rows = 24): TerminalSession {
+  constructor() {
+    // Try to import node-pty
+    import("node-pty")
+      .then((module) => {
+        this.ptyModule = module;
+        logger.info("node-pty loaded successfully");
+      })
+      .catch((e) => {
+        logger.warn({ err: e }, "node-pty not available, terminal features will be limited");
+      });
+  }
+
+  createSession(projectId: string, cwd: string, cols = 80, rows = 24): TerminalSession & { id: string } {
+    const id = uuid();
+    const isWin = process.platform === "win32";
+    const shell = isWin ? "powershell.exe" : process.env.SHELL || "/bin/bash";
+    
+    let ptyProcess: any;
+    if (this.ptyModule) {
+      ptyProcess = this.ptyModule.spawn(shell, [], {
+        name: "xterm-color",
+        cols,
+        rows,
+        cwd,
+        env: process.env,
+      });
+
+      ptyProcess.on("error", (err: Error) => {
+        logger.error({ err }, "PTY process error");
+      });
+    }
+
     const session: TerminalSession = {
-      id: uuid(),
+      id,
       projectId,
       cwd,
       cols,
       rows,
       createdAt: Date.now(),
     };
-    this.sessions.set(session.id, session);
-    return session;
+    
+    if (ptyProcess) {
+      this.sessions.set(id, { session, ptyProcess });
+    }
+    
+    return { ...session, id };
   }
 
-  getSession(id: string): TerminalSession | undefined {
+  getSession(id: string): { session: TerminalSession; ptyProcess: any } | undefined {
     return this.sessions.get(id);
+  }
+
+  closeSession(id: string): void {
+    const sessionData = this.sessions.get(id);
+    if (sessionData) {
+      try {
+        sessionData.ptyProcess.kill();
+      } catch (e) {
+        logger.error({ err: e }, "Error killing PTY process");
+      }
+      this.sessions.delete(id);
+    }
   }
 
   async runCommand(cwd: string, command: string, requireApproval = true): Promise<CommandExecutionResult> {

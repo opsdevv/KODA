@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@cider/shared"],
+  reactStrictMode: true,
+  transpilePackages: ["@koda/shared"],
+  webpack: (config) => {
+    config.cache = false;
+    return config;
+  },
   async rewrites() {
     return [
       {

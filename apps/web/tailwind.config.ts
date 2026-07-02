@@ -6,7 +6,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cider: {
+        koda: {
           bg: "#0d0d0f",
           surface: "#141418",
           panel: "#1a1a1f",

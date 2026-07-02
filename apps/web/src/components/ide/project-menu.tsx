@@ -12,7 +12,7 @@ import {
   Square,
   Loader2,
 } from "lucide-react";
-import type { ProjectInfo } from "@cider/shared";
+import type { ProjectInfo } from "@koda/shared";
 import { api } from "@/lib/api";
 import { getPreviewPublicHost } from "@/lib/api-base";
 import { useIdeStore } from "@/stores/ide-store";
@@ -240,14 +240,14 @@ export function ProjectMenu() {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 max-h-[min(70vh,480px)] w-[min(92vw,320px)] overflow-y-auto rounded-lg border border-cider-border bg-cider-panel py-1 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 max-h-[min(70vh,480px)] w-[min(92vw,320px)] overflow-y-auto rounded-lg border border-koda-border bg-koda-panel py-1 shadow-xl">
                 <button
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-white/5"
                   onClick={() => {
                     folderInputRef.current?.click();
                   }}
                 >
-                  <FolderOpen className="h-4 w-4 text-cider-accent" />
+                  <FolderOpen className="h-4 w-4 text-koda-accent" />
                   Open folder
                 </button>
                 <button
@@ -265,7 +265,7 @@ export function ProjectMenu() {
                     setMenuOpen(false);
                   }}
                 >
-                  <Upload className="h-4 w-4 text-cider-accent" />
+                  <Upload className="h-4 w-4 text-koda-accent" />
                   Upload ZIP project
                 </button>
                 <button
@@ -276,21 +276,21 @@ export function ProjectMenu() {
                     setError("");
                   }}
                 >
-                  <FolderPlus className="h-4 w-4 text-cider-accent" />
+                  <FolderPlus className="h-4 w-4 text-koda-accent" />
                   New project
                 </button>
 
-                <div className="my-1 border-t border-cider-border" />
-                <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-cider-muted">
+                <div className="my-1 border-t border-koda-border" />
+                <p className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-koda-muted">
                   Your projects
                 </p>
 
                 {projectsLoading && (
-                  <p className="px-3 py-2 text-xs text-cider-muted">Loading projects…</p>
+                  <p className="px-3 py-2 text-xs text-koda-muted">Loading projects…</p>
                 )}
 
                 {!projectsLoading && projects.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-cider-muted">No saved projects yet</p>
+                  <p className="px-3 py-2 text-xs text-koda-muted">No saved projects yet</p>
                 )}
 
                 {projects.map((project) => {
@@ -322,7 +322,7 @@ export function ProjectMenu() {
                           href={previewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded p-1 text-cider-accent hover:bg-white/10"
+                          className="rounded p-1 text-koda-accent hover:bg-white/10"
                           title={`Open ${previewUrl}`}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -332,7 +332,7 @@ export function ProjectMenu() {
                       {previewUrl ? (
                         <button
                           type="button"
-                          className="rounded p-1 text-cider-muted hover:bg-white/10 hover:text-cider-danger"
+                          className="rounded p-1 text-koda-muted hover:bg-white/10 hover:text-koda-danger"
                           title="Stop preview server"
                           disabled={isPreviewLoading}
                           onClick={(e) => void stopPreview(project, e)}
@@ -342,7 +342,7 @@ export function ProjectMenu() {
                       ) : (
                         <button
                           type="button"
-                          className="rounded p-1 text-cider-accent hover:bg-white/10"
+                          className="rounded p-1 text-koda-accent hover:bg-white/10"
                           title="Start dev server and open in browser"
                           disabled={isPreviewLoading}
                           onClick={(e) => void launchPreview(project, e)}
@@ -363,21 +363,21 @@ export function ProjectMenu() {
         </div>
 
         {uploadProgress && (
-          <span className="text-xs text-cider-accent animate-pulse">{uploadProgress}</span>
+          <span className="text-xs text-koda-accent animate-pulse">{uploadProgress}</span>
         )}
 
         {loading && !uploadProgress && (
-          <span className="text-xs text-cider-muted animate-pulse">Working…</span>
+          <span className="text-xs text-koda-muted animate-pulse">Working…</span>
         )}
 
         {success && !loading && (
-          <span className="max-w-[200px] truncate text-xs text-cider-accent" title={success}>
+          <span className="max-w-[200px] truncate text-xs text-koda-accent" title={success}>
             {success}
           </span>
         )}
 
         {error && !newProjectOpen && (
-          <span className="max-w-[240px] truncate text-xs text-cider-danger" title={error}>
+          <span className="max-w-[240px] truncate text-xs text-koda-danger" title={error}>
             {error}
           </span>
         )}
@@ -387,8 +387,8 @@ export function ProjectMenu() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-xl glass p-6 shadow-2xl">
             <h2 className="text-sm font-medium">Create new project</h2>
-            <p className="mt-1 text-xs text-cider-muted">
-              Creates a project in your local Cider workspace.
+            <p className="mt-1 text-xs text-koda-muted">
+              Creates a project in your local KODA workspace.
             </p>
             <input
               autoFocus
@@ -396,10 +396,10 @@ export function ProjectMenu() {
               onChange={(e) => setProjectName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createProject()}
               placeholder="my-app"
-              className="mt-3 w-full rounded-lg border border-cider-border bg-cider-bg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-cider-accent"
+              className="mt-3 w-full rounded-lg border border-koda-border bg-koda-bg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-koda-accent"
             />
 
-            {error && <p className="mt-2 text-xs text-cider-danger">{error}</p>}
+            {error && <p className="mt-2 text-xs text-koda-danger">{error}</p>}
 
             <div className="mt-4 flex justify-end gap-2">
               <Button size="sm" variant="ghost" onClick={() => setNewProjectOpen(false)}>

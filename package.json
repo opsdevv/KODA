@@ -1,16 +1,16 @@
 {
-  "name": "cider",
+  "name": "koda",
   "version": "0.1.0",
   "private": true,
-  "description": "Cider — Local AI coding IDE powered by DeepSeek",
+  "description": "KODA — Local AI coding IDE powered by DeepSeek",
   "scripts": {
-    "predev": "npx pnpm@9.15.0 --filter @cider/shared build",
+    "predev": "npx pnpm@9.15.0 --filter @koda/shared build",
     "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
-    "dev:server": "npx pnpm@9.15.0 --filter @cider/server dev",
-    "dev:web": "npx pnpm@9.15.0 --filter @cider/web dev",
+    "dev:server": "npx pnpm@9.15.0 --filter @koda/server dev",
+    "dev:web": "npx pnpm@9.15.0 --filter @koda/web dev",
     "build": "npx pnpm@9.15.0 -r build",
-    "desktop": "npx pnpm@9.15.0 --filter @cider/desktop dev",
-    "db:push": "npx pnpm@9.15.0 --filter @cider/server db:push",
+    "desktop": "npx pnpm@9.15.0 --filter @koda/desktop dev",
+    "db:push": "npx pnpm@9.15.0 --filter @koda/server db:push",
     "typecheck": "npx pnpm@9.15.0 -r typecheck",
     "install:all": "npx pnpm@9.15.0 install"
   },

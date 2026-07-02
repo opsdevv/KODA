@@ -1,5 +1,5 @@
 import type { ChatCompletionTool } from "openai/resources/chat/completions";
-import type { AgentToolDefinition } from "@cider/shared";
+import type { AgentToolDefinition } from "@koda/shared";
 
 export const AGENT_TOOL_DEFINITIONS: AgentToolDefinition[] = [
   {
